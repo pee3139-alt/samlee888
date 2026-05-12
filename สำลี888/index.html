@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สาลี888 - ยอดเงินกองกลาง</title>
+  <style>
+    /* สไตล์ Dark Mode สุดเท่ ตกแต่งโทนสีดำ-ส้ม */
+    body {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      max-width: 450px;
+      width: 100%;
+      /* ซ่อนหน้าเว็บหลักไว้ก่อนจนกว่าจะใส่รหัสถูก */
+      display: none; 
+    }
+    h1 {
+      color: #94a3b8;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 0;
+    }
+    .balance {
+      font-size: 48px;
+      font-weight: bold;
+      color: #f97316; /* สีส้ม */
+      margin: 15px 0;
+      text-shadow: 0 0 15px rgba(249, 115, 22, 0.3);
+    }
+    .btn {
+      background-color: #f97316;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: bold;
+      margin-bottom: 25px;
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background-color: #ea580c;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #334155;
+    }
+    th {
+      color: #94a3b8;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    td { font-size: 15px; }
+    .user-name { font-weight: bold; }
+    .user-amount { text-align: right; color: #38bdf8; font-weight: bold; }
+
+    /* =========================================
+       สไตล์สำหรับหน้าต่างล็อกอิน (รหัสผ่าน)
+       ========================================= */
+    #login-overlay {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      max-width: 350px;
+      width: 100%;
+    }
+    #pass-input {
+      width: 80%;
+      padding: 12px;
+      margin: 20px 0;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background-color: #0f172a;
+      color: white;
+      font-size: 16px;
+      text-align: center;
+      outline: none;
+    }
+    #pass-input:focus { border-color: #f97316; }
+    #error-msg {
+      color: #ef4444;
+      font-size: 14px;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="login-overlay">
+    <h2 style="color: #f91616; margin-top: 0;">🔒 ท้ายซอย GANG</h2>
+    <p style="color: #94a3b8; font-size: 14px;">กรุณาใส่รหัสผ่านกลุ่มเพื่อเข้าดูยอดเงิน</p>
+    <input type="password" id="pass-input" placeholder="รหัสผ่าน">
+    <br>
+    <button class="btn" onclick="checkPassword()" style="margin-bottom: 0;">เข้าสู่ระบบ</button>
+    <p id="error-msg">❌ รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง</p>
+  </div>
+
+  <div class="container" id="main-dashboard">
+    <h1>ยอดเงินกองกลาง สำลี888</h1>
+    <div class="balance" id="total-balance">กำลังโหลด...</div>
+    
+    <a href="https://forms.gle/ndz1Z5vvyZzEermG8" class="btn" target="_blank">💸 แจ้งโอนสลิปที่นี่</a>
+
+    <hr style="border: 0; border-top: 1px solid #334155; margin: 20px 0;">
+    
+    <h2 style="font-size: 16px; text-align: left; color: #94a3b8; margin-bottom: 10px;">สถานะการส่งเงินรายบุคคล</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>รายชื่อ</th>
+          <th style="text-align: right;">ยอดรวมโอน</th>
+        </tr>
+      </thead>
+      <tbody id="friends-list">
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // 🔴 1. ตั้งรหัสผ่านของกลุ่มพี่ตรงนี้ครับ (ตอนนี้ผมตั้งไว้เป็น 8888)
+    const SECRET_PASSWORD = '555';
+
+    // ฟังก์ชันตรวจสอบรหัสผ่าน
+    function checkPassword() {
+      const inputVal = document.getElementById('pass-input').value;
+      if (inputVal === SECRET_PASSWORD) {
+        // ถ้ารหัสถูก ปิดหน้าล็อกอิน แล้วโชว์หน้าตาราง
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('main-dashboard').style.display = 'block';
+        // สั่งให้เริ่มดึงข้อมูลจาก Sheets
+        fetchDataFromSheets(); 
+      } else {
+        // ถ้ารหัสผิด โชว์ข้อความแจ้งเตือนสีแดง
+        document.getElementById('error-msg').style.display = 'block';
+        document.getElementById('pass-input').value = ''; // เคลียร์ช่องใส่รหัส
+      }
+    }
+
+    // กดปุ่ม Enter ในช่องรหัสผ่านเพื่อให้ทำงานได้เลย ไม่ต้องใช้เมาส์คลิกปุ่ม
+    document.getElementById("pass-input").addEventListener("keypress", function(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        checkPassword();
+      }
+    });
+
+    // ==========================================
+    // ฟังก์ชันดึงข้อมูลจาก Google Sheets (ซ่อนไว้จนกว่าจะผ่านรหัส)
+    // ==========================================
+    function fetchDataFromSheets() {
+      const sheetId = '1V5oMJoGGIG6PGCYT6hdo2kdxNoGtwoNEeHvEV_wLIpQ'; 
+      const gid = '0'; // รหัสแผ่นสรุปยอดเงิน
+      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${gid}`;
+
+      fetch(url)
+        .then(res => res.text())
+        .then(data => {
+          const json = JSON.parse(data.substring(47).slice(0, -2));
+          const rows = json.table.rows;
+
+          let totalBalance = 0;
+          let friendsHtml = '';
+
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || !row.c) continue;
+
+            if (row.c[0] && row.c[0].v !== null) {
+              const valA = String(row.c[0].v).replace(/[^0-9.-]/g, '');
+              const numA = parseFloat(valA);
+              if (!isNaN(numA) && numA > 0 && totalBalance === 0) {
+                totalBalance = numA; 
+              }
+            }
+
+            const name = row.c[1] ? String(row.c[1].v).trim() : '';
+            
+            if (name && name !== 'รายชื่อเพื่อน' && name !== 'null') {
+              const valC = row.c[2] ? String(row.c[2].v).replace(/[^0-9.-]/g, '') : '0';
+              const amount = parseFloat(valC) || 0;
+              
+              friendsHtml += `
+                <tr>
+                  <td class="user-name">👤 ${name}</td>
+                  <td class="user-amount">${amount.toLocaleString()} บาท</td>
+                </tr>
+              `;
+            }
+          }
+
+          document.getElementById('total-balance').innerText = totalBalance.toLocaleString() + " บาท";
+          document.getElementById('friends-list').innerHTML = friendsHtml || '<tr><td colspan="2" style="text-align:center;">ยังไม่มีข้อมูลรายชื่อเพื่อน</td></tr>';
+        })
+        .catch(err => {
+          console.error(err);
+          document.getElementById('total-balance').innerText = "โหลดข้อมูลล้มเหลว";
+        });
+    }
+  </script>
+</body>
+</html>
